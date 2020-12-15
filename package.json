@@ -1,0 +1,13 @@
+{
+  "name": "livecode_phone",
+  "version": "0.0.0",
+  "description": "live code with your thumbs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^3.0.4"
+  }
+}
