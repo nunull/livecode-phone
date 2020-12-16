@@ -1,12 +1,33 @@
 const socket = io();
 
 Vue.component('add-transformation-dialog', {
+  methods: {
+    cloneTransformation: function (transformation) {
+      this.$root.closeModalDialog();
+
+      return {
+        id: uuidv4(),
+        isInstance: true,
+        name: transformation.name,
+        value: 0,
+        needsSubTransformation: transformation.needsSubTransformation
+      }
+    }
+  },
   template: `
     <div class="add-transformation-dialog">
-      <transformation-view
-        v-for="transformation in $root.availableTransformations"
-        v-bind:transformation="transformation"
-      ></transformation-view>
+      <draggable
+        v-bind:list="$root.availableTransformations"
+        v-bind:group="{ name: 'transformations', pull: 'clone', put: false }"
+        v-bind:clone="cloneTransformation"
+        v-bind:sort="false"
+      >
+        <transformation-view
+          v-for="transformation in $root.availableTransformations"
+          v-bind:key="transformation.id"
+          v-bind:transformation="transformation"
+        ></transformation-view>
+      </draggable>
     </div>
   `
 });
@@ -35,10 +56,10 @@ Vue.component('pattern-view', {
 });
 
 Vue.component('transformation-view', {
-  props: ['transformation', 'isInstance', 'isSubTransformation'],
+  props: ['transformation', 'isSubTransformation'],
   template: `
-    <div class="transformation">
-      <img src="/assets/arrow-down.png" class="arrow" v-if="isInstance && !isSubTransformation">
+    <div class="transformation" v-bind:class="{ 'is-instance': transformation.isInstance }">
+      <img src="/assets/arrow-down.png" class="arrow" v-if="!isSubTransformation">
       <div class="value" v-bind:class="{ 'has-sub-transformation': !!transformation.transformation }">
         {{ transformation.name }}
         {{ transformation.value }}
@@ -73,21 +94,28 @@ Vue.component('round-button', {
 const app = new Vue({
   el: '#app',
   data: {
-    currentModalDialogComponent: null,
+    modalDialog: {
+      visible: false,
+      component: null,
+    },
     pattern: { steps: [5, 0, 3, 2], scaleSteps: 6 },
     availableTransformations: [
-      { name: 'pitch' },
-      { name: 'every', needsSubTransformation: true },
-      { name: 'chance' }
+      { id: uuidv4(), name: 'pitch' },
+      { id: uuidv4(), name: 'every', needsSubTransformation: true },
+      { id: uuidv4(), name: 'chance' }
     ],
     transformations: [
-      { name: 'pitch', value: 2 },
-      { name: 'every', value: 2, needsSubTransformation: true, transformation: { name: 'chance', value: 0.5 } }
+      { id: uuidv4(), isInstance: true, name: 'pitch', value: 2 },
+      { id: uuidv4(), isInstance: true, name: 'every', value: 2, needsSubTransformation: true, transformation: { id: uuidv4(), name: 'chance', value: 0.5 } }
     ]
   },
   methods: {
-    modalDialog: function (componentName) {
-      this.currentModalDialogComponent = componentName
+    showModalDialog: function (component) {
+      this.modalDialog.component = component;
+      this.modalDialog.visible = true;
+    },
+    closeModalDialog: function () {
+      this.modalDialog.visible = false;
     }
   }
 });

@@ -2,21 +2,35 @@
 <html lang="en">
   <head>
     <script src="/socket.io.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/uuid@latest/dist/umd/uuidv4.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sortablejs@1.8.4/Sortable.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.20.0/vuedraggable.umd.min.js"></script>
     <link rel="stylesheet" type="text/css" href="style.css">
-    <meta charset="utf-8" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
   <body>
     <div id="app">
-      <component v-bind:is="currentModalDialogComponent" class="modal-dialog"></component>
+      <component
+        v-bind:is="modalDialog.component"
+        class="modal-dialog"
+        v-bind:class="{ visible: modalDialog.visible }"
+      ></component>
 
       <pattern-view v-bind:pattern="pattern"></pattern-view>
-      <transformation-view
-        v-for="transformation in transformations"
-        v-bind:transformation="transformation"
-        is-instance="true"
-      ></transformation-view>
-      <round-button text="+" v-on:click="modalDialog('add-transformation-dialog')"></round-button>
+      <draggable
+        v-bind:list="transformations"
+        group="transformations"
+        ghost-class="ghost"
+      >
+        <transformation-view
+          v-for="transformation in transformations"
+          v-bind:key="transformation.id"
+          v-bind:transformation="transformation"
+        ></transformation-view>
+      </draggable>
+      <round-button text="+" v-on:click="showModalDialog('add-transformation-dialog')"></round-button>
     </div>
 
     <script src="index.js"></script>

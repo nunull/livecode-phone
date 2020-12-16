@@ -16,13 +16,17 @@ html, body {
 /* modal-dialog */
 
 .modal-dialog {
+  display: none;
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
-  padding: 15px;
+  padding: 10px 0;
   background: rgba(0, 0, 0, 0.8);
+}
+.modal-dialog.visible {
+  display: block;
 }
 
 /* pattern-view */
@@ -45,8 +49,11 @@ html, body {
 /* transformation-view */
 
 .transformation .arrow {
-  display: block;
+  display: none;
   margin: 0 auto;
+}
+.transformation.is-instance .arrow, .transformation.ghost .arrow {
+  display: block;
 }
 .transformation .value {
   margin: 5px 15px;
@@ -54,6 +61,9 @@ html, body {
   background: #121212;
   border-radius: 3px;
   font-size: 28px;
+}
+.transformation.ghost .value {
+  opacity: 0.2;
 }
 .transformation .value.has-sub-transformation {
   background: #0B0B0B;
