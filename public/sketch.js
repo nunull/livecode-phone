@@ -13,7 +13,7 @@ function setup() {
 class TabBar {
   constructor(tabNames){
     this.tabNames = tabNames;
-    this.height = height/8.
+    this.height = height/8;
     this.y = height-this.height;
   }
 
