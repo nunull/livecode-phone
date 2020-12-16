@@ -1,4 +1,4 @@
-var socket = io();
+let socket = io();
 
 let guiObjects = [];
 
@@ -6,18 +6,18 @@ function setup() {
   createCanvas(400, 800);
   noLoop();
 
-  tabby = new TabBar(["a","b","c","d" ]);
+  tabby = new TabBar(["a", "b", "c", "d"]);
   guiObjects.push(tabby);
 }
 
-class TabBar{
+class TabBar {
   constructor(tabNames){
     this.tabNames = tabNames;
     this.height = height/8.
     this.y = height-this.height;
   }
 
-  render(){
+  render() {
     const { y } = this;
 
     rect(0, y, width, height);
@@ -43,10 +43,10 @@ function draw() {
   tabby.render();
 }
 
-function mousePressed(){
-  for(let i=0; i<guiObjects.length;i++) {
+function mousePressed() {
+  for(let i=0; i<guiObjects.length; i++) {
     if(guiObjects[i].isClicked) {
-      guiObjects[i].isClicked(mouseX,mouseY);
+      guiObjects[i].isClicked(mouseX, mouseY);
     }
   }
 }
