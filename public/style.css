@@ -29,6 +29,14 @@ html, body {
   display: block;
 }
 
+/* change-value-dialog */
+
+.change-value-dialog.visible {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 /* pattern-view */
 
 .pattern {
@@ -80,6 +88,18 @@ html, body {
   color: #484848;
 }
 
+/* standard-button */
+
+.standard-button {
+  margin: 20px 30px;
+  font-size: 28px;
+  padding: 5px;
+  text-align: center;
+  border-radius: 3px;
+  background: white;
+  color: black;
+}
+
 /* round-button */
 
 .round-button {
@@ -93,4 +113,16 @@ html, body {
   background: white;
   text-align: center;
   cursor: pointer;
+}
+
+/* dial */
+
+.dial {
+  margin: 15px;
+}
+.dial svg {
+  display: block;
+  margin: 0 auto;
+  /* width: 300px;
+  height: 300px; */
 }

@@ -8,12 +8,13 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.20.0/vuedraggable.umd.min.js"></script>
     <link rel="stylesheet" type="text/css" href="style.css">
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   </head>
   <body>
     <div id="app">
       <component
         v-bind:is="modalDialog.component"
+        v-bind:dialog-attributes="modalDialog.attributes"
         class="modal-dialog"
         v-bind:class="{ visible: modalDialog.visible }"
       ></component>
@@ -28,11 +29,12 @@
           v-for="transformation in transformations"
           v-bind:key="transformation.id"
           v-bind:transformation="transformation"
+          v-on:change-value="showModalDialog('change-value-dialog', { transformation: $event })"
         ></transformation-view>
       </draggable>
       <round-button text="+" v-on:click="showModalDialog('add-transformation-dialog')"></round-button>
     </div>
 
-    <script src="index.js"></script>
+    <script src="/index.js"></script>
   </body>
 </html>
