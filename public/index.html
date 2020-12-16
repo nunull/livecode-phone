@@ -8,11 +8,15 @@
   </head>
   <body>
     <div id="app">
+      <component v-bind:is="currentModalDialogComponent" class="modal-dialog"></component>
+
       <pattern-view v-bind:pattern="pattern"></pattern-view>
       <transformation-view
         v-for="transformation in transformations"
         v-bind:transformation="transformation"
+        is-instance="true"
       ></transformation-view>
+      <round-button text="+" v-on:click="modalDialog('add-transformation-dialog')"></round-button>
     </div>
 
     <script src="index.js"></script>
