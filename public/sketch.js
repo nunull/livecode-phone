@@ -1,31 +1,64 @@
-let socket = io();
+const socket = io();
 
-let guiObjects = [];
+const globalMargin = 20;
+const cornerRadius = 3;
+const black = '#000000';
+const darkGrey = '#121212';
+const lightGrey = '#484848';
+const white = '#FFFFFF';
+
+let monospaceFont;
+
+const guiObjects = [];
+
+function preload() {
+  monospaceFont = loadFont('FiraCode-Regular.ttf');
+}
 
 function setup() {
   createCanvas(400, 800);
   noLoop();
 
-  guiObjects.push(new TabBar(["a", "b", "c", "d"]));
+  guiObjects.push(new TabBar([{ name: 'A', active: true }, { name: 'B' }, { name: 'C' }, { name: 'G' }]));
   guiObjects.push(new PatternView(6, [5, 1, 3, 2]));
+  guiObjects.push(new TransformationView(140, "pitch +2"));
+  guiObjects.push(new TransformationView(240, "set pattern"));
 }
 
 class TabBar {
-  constructor(tabNames) {
-    this.tabNames = tabNames;
-    this.height = height/8;
+  constructor(tabs) {
+    this.innerMargin = 13;
+    this.fontSize = 28;
+    this.height = this.fontSize + this.innerMargin*2;
     this.y = height-this.height;
+
+    this.tabs = tabs;
   }
 
   render() {
-    const { y, tabNames } = this;
+    const { y, innerMargin, tabs } = this;
 
-    rect(0, y, width, height);
+    // draw top line
+    strokeWeight(1);
+    stroke(white);
+    line(0, y, width, y);
 
-    const spacing = width/tabNames.length;
-    for(let i=0; i<tabNames.length; i++){
-      line(spacing*i, y, spacing*i, height);
-      text(tabNames[i], spacing/2+spacing*i, y+this.height/2);
+    // tab names
+    const spacing = width/tabs.length;
+    for(let i=0; i<tabs.length; i++) {
+      if (tabs[i].active) {
+        const circleDiameter = spacing/2-innerMargin/2;
+        ellipseMode(CORNER);
+        fill(white);
+        circle(spacing*i+innerMargin/2+circleDiameter/2, y+innerMargin/2, circleDiameter);
+      }
+
+      textAlign(CENTER, TOP);
+      textFont(monospaceFont);
+      textSize(this.fontSize);
+      noStroke();
+      fill(tabs[i].active ? black : white);
+      text(tabs[i].name, spacing/2+spacing*i, y+innerMargin);
     }
   }
 
@@ -36,33 +69,89 @@ class TabBar {
 
 class PatternView {
   constructor(scaleLength, pattern) {
+    this.x = globalMargin;
+    this.y = globalMargin;
+    this.height = 140;
+    this.width = width - globalMargin*2;
+    this.innerMargin = 13;
+
     this.scaleLength = scaleLength;
     this.pattern = pattern;
-    this.height = 140;
-    this.y = 0;
   }
 
   render() {
-    const { y, scaleLength, pattern } = this;
-    const spacing = width/pattern.length;
+    const { x, y, innerMargin, scaleLength, pattern } = this;
+
+    const innerHeight = this.height-globalMargin-innerMargin;
+    const spacing = (this.width+innerMargin)/pattern.length;
+    const stepWidth = spacing-innerMargin;
     for(let i=0; i<pattern.length; i++) {
       // step column
-      rect(spacing*i, y, spacing, this.height);
+      noStroke();
+      fill(darkGrey);
+      rect(x+spacing*i, y, stepWidth, innerHeight, cornerRadius);
 
       // step value
-      const stepHeight = this.height/scaleLength;
+      const stepHeight = innerHeight/scaleLength;
       const stepY = y + stepHeight * pattern[i];
-      rect(spacing*i, stepY, spacing, stepHeight);
+      noStroke();
+      fill(lightGrey);
+      rect(x+spacing*i, stepY, stepWidth, stepHeight, cornerRadius);
     }
   }
 
   isClicked(x, y) {
-    return isPointInRect(0, this.y, width, this.height, x, y);
+    return isPointInRect(this.x, this.y, this.width, this.height, x, y);
+  }
+}
+
+class TransformationView {
+  constructor(y, transformation) {
+    this.x = globalMargin;
+    this.y = y;
+    this.width = width - globalMargin*2;
+    this.fontSize = 31;
+    this.innerMargin = 13;
+    this.arrowLength = 20;
+    this.height = this.fontSize + this.innerMargin*2 + this.arrowLength + this.innerMargin;
+
+    this.transformation = transformation;
+  }
+
+  render() {
+    const { x, y, arrowLength, innerMargin } = this
+
+    const middleX = x+this.width/2;
+
+    // draw arrow
+    stroke(lightGrey);
+    strokeWeight(5);
+    line(middleX, y, x+this.width/2, y+arrowLength);
+
+    fill(lightGrey);
+    triangle(middleX, y+arrowLength, middleX-7, y+arrowLength/2, middleX+7, y+arrowLength/2);
+
+    // draw background rectangle
+    noStroke();
+    fill(darkGrey);
+    rect(x, y+arrowLength+innerMargin, this.width, this.fontSize + innerMargin*2, cornerRadius);
+
+    // text
+    textAlign(LEFT, TOP);
+    textFont(monospaceFont);
+    textSize(this.fontSize);
+    noStroke();
+    fill(white);
+    text(this.transformation, x+innerMargin, y+arrowLength+innerMargin*2);
+  }
+
+  isClicked(x, y) {
+    return isPointInRect(this.x, this.y, this.width, this.height, x, y);
   }
 }
 
 function draw() {
-  background(220);
+  background(black);
 
   for(let i=0; i<guiObjects.length; i++) {
     guiObjects[i].render();
