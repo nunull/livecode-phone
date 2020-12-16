@@ -1,32 +1,16 @@
 var socket = io();
 
-
-
 let guiObjects = [];
-
-
-
 
 function setup() {
   createCanvas(400, 800);
-
-
-  tabby = new TabBar(["a","b","c","d" ]);
-
-  guiObjects.push(tabby);
-
   noLoop();
 
-
-
-
+  tabby = new TabBar(["a","b","c","d" ]);
+  guiObjects.push(tabby);
 }
 
-
-
-
 class TabBar{
-
   constructor(tabNames){
     this.tabNames = tabNames;
     this.height = height/8.
@@ -34,22 +18,16 @@ class TabBar{
   }
 
   render(){
-
     const { y } = this;
 
-
-    rect(0,y,width,height);
+    rect(0, y, width, height);
 
     for(let i=0; i<this.tabNames.length; i++){
-
       let spacing = width/this.tabNames.length;
 
-      line(spacing*i,y,spacing*i,height);
-
-      text(this.tabNames[i],spacing/2+spacing*i,y+this.height/2);
-
-      }
-
+      line(spacing*i, y, spacing*i, height);
+      text(this.tabNames[i], spacing/2+spacing*i, y+this.height/2);
+    }
   }
 
   isClicked(x,y){
@@ -57,25 +35,18 @@ class TabBar{
       console.log("hello");
     }
   }
-
 }
-
-
-
 
 function draw() {
   background(220);
 
   tabby.render();
-
 }
 
 function mousePressed(){
-
-  for(let i=0; i<guiObjects.length;i++){
-    if(guiObjects[i].isClicked){
-    guiObjects[i].isClicked(mouseX,mouseY);
+  for(let i=0; i<guiObjects.length;i++) {
+    if(guiObjects[i].isClicked) {
+      guiObjects[i].isClicked(mouseX,mouseY);
     }
   }
-
 }
