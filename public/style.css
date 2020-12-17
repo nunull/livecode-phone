@@ -10,6 +10,7 @@ html, body {
 }
 * {
   color: white;
+  cursor: default;
   font-family: FiraCode, monospace;
   -webkit-touch-callout: none;
     -webkit-user-select: none;

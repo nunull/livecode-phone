@@ -3,19 +3,15 @@ const socket = io();
 Vue.component('add-transformation-dialog', {
   methods: {
     cloneTransformation: function(transformation) {
-      console.log('add-transformation-dialog.cloneTransformation');
       this.$root.hideModalDialog();
 
       return {
-        id: uuidv4(),
-        isInstance: true,
+        id: 'temporary',
         name: transformation.name,
-        value: 0,
-        needsSubTransformation: transformation.needsSubTransformation
+        isTemporary: true
       };
     },
     onEnd: function() {
-      console.log('add-transformation-dialog.onEnd');
       this.$root.closeModalDialog();
     }
   },
@@ -44,13 +40,24 @@ Vue.component('add-transformation-dialog', {
 
 Vue.component('change-value-dialog', {
   props: ['dialogAttributes'],
+  computed: {
+    value: {
+      get() {
+        return this._props.dialogAttributes.transformation.value;
+      },
+      set(value) {
+        const id = this._props.dialogAttributes.transformation.id;
+        this.$store.dispatch('updateValue', { id, value })
+      }
+    }
+  },
   template: `
     <div class="change-value-dialog"
       v-on:mousemove="$refs.dial.onMouseMove($event)"
       v-on:mouseup="$refs.dial.onMouseUp($event)"
     >
       <dial
-        v-model="dialogAttributes.transformation.value"
+        v-model="value"
         v-bind:valueType="dialogAttributes.transformation.valueType"
         v-bind:min="dialogAttributes.transformation.min"
         v-bind:max="dialogAttributes.transformation.max"
@@ -64,15 +71,18 @@ Vue.component('change-value-dialog', {
 Vue.component('pattern-view', {
   props: ['pattern'],
   data: function () {
-    const height = 120;
     return {
-      stepHeight: 120,
-      valueHeight: 120/this._props.pattern.scaleSteps
+      stepHeight: 120
+    }
+  },
+  computed: {
+    valueHeight: function() {
+      return this.stepHeight/this._props.pattern.scaleSteps;
     }
   },
   methods: {
     stepTopMargin: function (step) {
-      return (this._props.pattern.scaleSteps - step - 1) * this._data.valueHeight;
+      return (this._props.pattern.scaleSteps - step - 1) * this.valueHeight;
     },
   },
   template: `
@@ -90,6 +100,7 @@ Vue.component('transformation-view', {
     <div class="transformation" v-bind:class="{ 'is-instance': transformation.isInstance }">
       <img src="/assets/arrow-down.png" class="arrow" v-if="!isSubTransformation">
       <div class="value" v-bind:class="{ 'has-sub-transformation': !!transformation.transformation }">
+        <i v-if="transformation.isTemporary">loading...</i>
         <div v-on:click="$emit('change-value', transformation)">
           {{ transformation.name }}
           {{ transformation.value }}
@@ -244,51 +255,92 @@ Vue.component('dial', {
   `
 });
 
+
+const store = new Vuex.Store({
+  state: {
+    pattern: null,
+    availableTransformations: null,
+    transformations: []
+  },
+  mutations: {
+    availableTransformations(state, availableTransformations) {
+      state.availableTransformations = availableTransformations;
+    },
+    transformations(state, transformations) {
+      state.transformations = transformations;
+    },
+    value(state, { id, value }) {
+      const transformation = state.transformations.find(t => t.id === id);
+      transformation.value = value;
+    },
+    pattern(state, pattern) {
+      state.pattern = pattern;
+    }
+  },
+  actions: {
+    initialize(context) {
+      fetch('/api/availableTransformations').then(res => res.json()).then(transformations => {
+        context.commit('availableTransformations', transformations);
+      });
+
+      fetch('/api/transformations').then(res => res.json()).then(transformations => {
+        context.commit('transformations', transformations);
+      });
+
+      fetch('/api/pattern').then(res => res.json()).then(pattern => {
+        context.commit('pattern', pattern);
+      });
+    },
+
+    updateTransformations(context, transformations) {
+      fetch('/api/transformations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(transformations)
+      }).then(res => res.json()).then(transformations => {
+        context.commit('transformations', transformations);
+      });
+    },
+
+    updateValue(context, { id, value }) {
+      fetch(`/api/transformations/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ value })
+      }).then(res => res.json()).then(() => {
+        context.commit('value', { id, value })
+      });
+    }
+  }
+});
+
+store.dispatch('initialize');
+
+
 const app = new Vue({
   el: '#app',
+  store,
   data: {
     modalDialog: {
       visible: false,
       component: null,
       attributes: null
     },
-    pattern: { steps: [5, 0, 3, 2], scaleSteps: 6 },
-    availableTransformations: [
-      {
-        id: uuidv4(),
-        name: 'pitch', description: 'change the pitch',
-        valueType: 'float', min: -24, max: 24
+  },
+  computed: {
+    ...Vuex.mapState(['pattern', 'availableTransformations']),
+    transformations: {
+      get() {
+        return this.$store.state.transformations;
       },
-      {
-        id: uuidv4(),
-        name: 'every', description: 'apply another transformation every x times',
-        valueType: 'int', min: 1, max: 16,
-        needsSubTransformation: true
-      },
-      {
-        id: uuidv4(),
-        name: 'chance', description: 'trigger steps of the pattern with a chance',
-        valueType: 'float', min: 0, max: 1
+      set(value) {
+        this.$store.dispatch('updateTransformations', value)
       }
-    ],
-    transformations: [
-      {
-        id: uuidv4(), isInstance: true,
-        name: 'pitch',
-        value: 2, valueType: 'float', min: -24, max: 24
-      },
-      {
-        id: uuidv4(), isInstance: true,
-        name: 'every',
-        value: 2, valueType: 'int', min: 1, max: 16,
-        needsSubTransformation: true,
-        transformation: {
-          id: uuidv4(), isInstance: true,
-          name: 'chance',
-          value: 0.5, valueType: 'float', min: 0, max: 1
-        }
-      }
-    ]
+    }
   },
   methods: {
     showModalDialog: function(component, attributes) {
