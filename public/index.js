@@ -2,8 +2,9 @@ const socket = io();
 
 Vue.component('add-transformation-dialog', {
   methods: {
-    cloneTransformation: function (transformation) {
-      this.$root.closeModalDialog();
+    cloneTransformation: function(transformation) {
+      console.log('add-transformation-dialog.cloneTransformation');
+      this.$root.hideModalDialog();
 
       return {
         id: uuidv4(),
@@ -11,7 +12,11 @@ Vue.component('add-transformation-dialog', {
         name: transformation.name,
         value: 0,
         needsSubTransformation: transformation.needsSubTransformation
-      }
+      };
+    },
+    onEnd: function() {
+      console.log('add-transformation-dialog.onEnd');
+      this.$root.closeModalDialog();
     }
   },
   template: `
@@ -21,12 +26,14 @@ Vue.component('add-transformation-dialog', {
         v-bind:group="{ name: 'transformations', pull: 'clone', put: false }"
         v-bind:clone="cloneTransformation"
         v-bind:sort="false"
+        v-on:end="onEnd"
       >
         <transformation-view
           v-for="transformation in $root.availableTransformations"
           v-bind:key="transformation.id"
           v-bind:transformation="transformation"
         ></transformation-view>
+        <standard-button text="Cancel" v-on:click="$root.closeModalDialog"></standard-button>
       </draggable>
     </div>
   `
@@ -35,8 +42,11 @@ Vue.component('add-transformation-dialog', {
 Vue.component('change-value-dialog', {
   props: ['dialogAttributes'],
   template: `
-    <div class="change-value-dialog">
-      <dial v-model="dialogAttributes.transformation.value"></dial>
+    <div class="change-value-dialog"
+      v-on:mousemove="$refs.dial.onMouseMove($event)"
+      v-on:mouseup="$refs.dial.onMouseUp($event)"
+    >
+      <dial v-model="dialogAttributes.transformation.value" ref="dial"></dial>
       <standard-button text="OK" v-on:click="$root.closeModalDialog"></standard-button>
     </div>
   `
@@ -74,6 +84,7 @@ Vue.component('transformation-view', {
         <div v-on:click="$emit('change-value', transformation)">
           {{ transformation.name }}
           {{ transformation.value }}
+          <p class="description" v-if="!transformation.isInstance">{{ transformation.description }}</p>
         </div>
         <div class="sub-transformation" v-if="transformation.needsSubTransformation">
           <transformation-view
@@ -117,9 +128,23 @@ Vue.component('dial', {
   props: ['value'],
   data: function () {
     return {
+      internalValue: this._props.value,
       drag: {
-        start: { x: 0, y: 0, value: 0 }
+        start: null
       }
+    }
+  },
+  computed: {
+    valueRounded: function() {
+      return Math.round(this.internalValue*10)/10;
+    },
+    dFull: function() {
+      return this.describeArc(100, 100, 85, -150, 150)
+    },
+    dValue: function() {
+      const normalizedValue = this.internalValue / 10; // TODO
+      const deg = normalizedValue*150;
+      return this.describeArc(100, 100, 85, -150, deg)
     }
   },
   methods: {
@@ -143,14 +168,25 @@ Vue.component('dial', {
           'A', radius, radius, 0, largeArcFlag, 0, end.x, end.y
       ].join(' ');
     },
+    onMouseDown: function(event) {
+      this.onTouchStart(event);
+    },
+    onMouseUp: function(event) {
+      if (!this.drag.start) return;
+      this.onTouchEnd(event);
+    },
+    onMouseMove: function(event) {
+      if (!this.drag.start) return;
+      this.onTouchMove(event);
+    },
     onTouchStart: function(event) {
-      this.drag.start.x = event.pageX;
-      this.drag.start.y = event.pageY;
-      this.drag.start.value = this.value;
+      // this.internalValue = this._props.value;
+      this.drag.start = { x: event.pageX, y: event.pageY, value: this.internalValue };
     },
     onTouchEnd: function(event) {
       this.onTouchMove(event);
-      this.$emit('input', this.valueRounded)
+      this.$emit('input', this.valueRounded);
+      this.drag.start = null;
     },
     onTouchMove: function(event) {
       event.preventDefault();
@@ -159,25 +195,13 @@ Vue.component('dial', {
       const scaled = abs/30;
       const minValue = -10; // TODO
       const maxValue = 10; // TODO
-      this.value = Math.max(minValue, Math.min(maxValue, this.drag.start.value + scaled));
-    }
-  },
-  computed: {
-    valueRounded: function() {
-      return Math.round(this.value*10)/10;
-    },
-    dFull: function() {
-      return this.describeArc(100, 100, 85, -150, 150)
-    },
-    dValue: function() {
-      const normalizedValue = this._props.value / 10; // TODO
-      const deg = normalizedValue*150;
-      return this.describeArc(100, 100, 85, -150, deg)
+      this.internalValue = Math.max(minValue, Math.min(maxValue, this.drag.start.value + scaled));
     }
   },
   template: `
     <div class="dial">
       <svg width="200" height="200"
+        v-on:mousedown="onMouseDown"
         v-on:touchstart="onTouchStart"
         v-on:touchend="onTouchEnd"
         v-on:touchmove="onTouchMove"
@@ -200,9 +224,9 @@ const app = new Vue({
     },
     pattern: { steps: [5, 0, 3, 2], scaleSteps: 6 },
     availableTransformations: [
-      { id: uuidv4(), name: 'pitch' },
-      { id: uuidv4(), name: 'every', needsSubTransformation: true },
-      { id: uuidv4(), name: 'chance' }
+      { id: uuidv4(), name: 'pitch', description: 'change the pitch' },
+      { id: uuidv4(), name: 'every', description: 'apply another transformation every x times', needsSubTransformation: true },
+      { id: uuidv4(), name: 'chance', description: 'trigger steps of the pattern with a chance' }
     ],
     transformations: [
       { id: uuidv4(), isInstance: true, name: 'pitch', value: 2 },
@@ -210,13 +234,17 @@ const app = new Vue({
     ]
   },
   methods: {
-    showModalDialog: function (component, attributes) {
+    showModalDialog: function(component, attributes) {
       this.modalDialog.component = component;
       this.modalDialog.attributes = attributes;
       this.modalDialog.visible = true;
     },
-    closeModalDialog: function () {
+    hideModalDialog: function() {
       this.modalDialog.visible = false;
+    },
+    closeModalDialog: function() {
+      this.hideModalDialog();
+      this.modalDialog.component = null;
     }
   }
 });

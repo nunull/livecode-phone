@@ -76,6 +76,12 @@ html, body {
 .transformation .value.has-sub-transformation {
   background: #0B0B0B;
 }
+.transformation .description {
+  font-family: sans-serif;
+  font-size: 12pt;
+  line-height: 1.4em;
+  color: #999999;
+}
 
 /* transformation-placeholder-view */
 
@@ -98,6 +104,7 @@ html, body {
   border-radius: 3px;
   background: white;
   color: black;
+  cursor: pointer;
 }
 
 /* round-button */
