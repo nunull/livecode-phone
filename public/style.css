@@ -44,6 +44,24 @@ html, body {
   justify-content: center;
 }
 
+/* channel-name */
+
+.channel-name {
+  position: fixed;
+  text-align: center;
+  display: block;
+  width: 44px;
+  left: 50%;
+  border: solid 10px black;
+  margin-left: -36px;
+  margin-top: -4px;
+  border-radius: 50%;
+  font-size: 36px;
+  padding: 4px;
+  color: white;
+  background: #121212;
+}
+
 /* pattern-view */
 
 .pattern {

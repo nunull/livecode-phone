@@ -258,11 +258,15 @@ Vue.component('dial', {
 
 const store = new Vuex.Store({
   state: {
+    channel: null,
     pattern: null,
     availableTransformations: null,
     transformations: []
   },
   mutations: {
+    channel(state, channel) {
+      state.channel = channel;
+    },
     availableTransformations(state, availableTransformations) {
       state.availableTransformations = availableTransformations;
     },
@@ -279,16 +283,11 @@ const store = new Vuex.Store({
   },
   actions: {
     initialize(context) {
-      fetch('/api/availableTransformations').then(res => res.json()).then(transformations => {
-        context.commit('availableTransformations', transformations);
-      });
-
-      fetch('/api/transformations').then(res => res.json()).then(transformations => {
-        context.commit('transformations', transformations);
-      });
-
-      fetch('/api/pattern').then(res => res.json()).then(pattern => {
-        context.commit('pattern', pattern);
+      fetch('/api/init').then(res => res.json()).then(result => {
+        context.commit('channel', result.channel);
+        context.commit('transformations', result.transformations);
+        context.commit('availableTransformations', result.availableTransformations);
+        context.commit('pattern', result.pattern);
       });
     },
 
@@ -332,7 +331,7 @@ const app = new Vue({
     },
   },
   computed: {
-    ...Vuex.mapState(['pattern', 'availableTransformations']),
+    ...Vuex.mapState(['pattern', 'availableTransformations', 'channel']),
     transformations: {
       get() {
         return this.$store.state.transformations;

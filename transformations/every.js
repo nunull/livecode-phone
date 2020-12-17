@@ -5,11 +5,11 @@ exports.valueType = 'int';
 exports.min = 1;
 exports.max = 16;
 exports.f = function(pattern) {
-  let result = []
+  let steps = []
   for (let i = 0; i < this.value-1; i++) {
-    result = result.concat(pattern)
+    steps = steps.concat(pattern.steps)
   }
-  result = result.concat(this.transformation.f(pattern))
+  steps = steps.concat(this.transformation.f(pattern).steps)
 
-  return result
+  return { ...patern, steps };
 };

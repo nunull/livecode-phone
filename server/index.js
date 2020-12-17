@@ -1,65 +1,100 @@
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser')
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
+const { v4: uuidv4 } = require('uuid');
+
+const { Worker } = require('worker_threads');
+const sequencer = new Worker(`${__dirname}/sequencer.js`);
+sequencer.on('message', (message) => {
+  console.log(message);
+});
+sequencer.on('error', (error) => {
+  console.error(error);
+  process.exit(1);
+});
+sequencer.on('exit', (code) => {
+  if (code !== 0) {
+    console.error(`sequencer stopped with exit code ${code}`);
+    process.exit(1);
+  }
+});
 
 const transformations = require('./transformations');
 
 const port = process.env.PORT || 3000;
 
+const store = {
+  pattern: { steps: [5, 0, 3, 2], scaleSteps: 6, scale: [], octave: 3 },
+  channels: {}
+}
+
 http.listen(port, () => console.log(`listening on ${port}`));
 
 app.use(bodyParser.json());
+app.use(cookieParser());
 app.use(express.static(`${__dirname}/../public`));
 app.use(express.static(`${__dirname}/../common`));
 app.use(express.static(`${__dirname}/../node_modules/socket.io/client-dist/`));
 
-const store = {
-  pattern: { steps: [5, 0, 3, 2], scaleSteps: 6 },
-  channels: [{
-    transformations: []
-  }]
-}
+app.use((req, res, next) => {
+  // Create a channel for each client
+  if (!req.cookies.channel || !store.channels[req.cookies.channel]) {
+    const id = uuidv4();
+    const number = Object.keys(store.channels).length;
+    const channel = {
+      name: number+1,
+      channel: number,
+      transformations: []
+    };
 
-app.get('/api/availableTransformations', (req, res) => {
-  res.json(transformations.transformations);
-})
+    res.cookie('channel', id);
+    store.channels[id] = channel;
 
-app.get('/api/transformations', (req, res) => {
-  // TODO channel number
-  res.json(store.channels[0].transformations);
-})
+    sequencer.postMessage(store);
+
+    // Populate the channel property on req
+    req.channel = channel;
+  } else {
+    // Populate the channel property on req
+    req.channel = store.channels[req.cookies.channel];
+  }
+
+  next();
+});
+
+app.get('/api/init', (req, res) => {
+  res.json({
+    channel: { name: req.channel.name },
+    transformations: req.channel.transformations,
+    availableTransformations: transformations.transformations,
+    pattern: store.pattern
+  });
+});
 
 app.post('/api/transformations', (req, res) => {
-  // TODO channel number
-  store.channels[0].transformations = req.body.map(t => {
+  req.channel.transformations = req.body.map(t => {
     return t.isTemporary ? transformations.instanciateTransformation(t) : t;
   });
-  res.json(store.channels[0].transformations);
-})
+
+  sequencer.postMessage(store);
+  res.json(req.channel.transformations);
+});
 
 app.post('/api/transformations/:id', (req, res) => {
-  // TODO channel number
-  const transformation = store.channels[0].transformations.find(t => t.id === req.params.id);
+  const transformation = req.channel.transformations.find(t => t.id === req.params.id);
   if (!transformation) {
     return res.status(404).json({});
   }
 
   transformation.value = req.body.value;
+
+  sequencer.postMessage(store);
   res.json({});
-})
-
-app.get('/api/pattern', (req, res) => {
-  // TODO
-  res.json(store.pattern);
-})
-
-app.get('/api/channel/:number', (req, res) => {
-  // TODO danger
-  res.json(store.channels[req.params.number]);
 });
 
 io.on('connection', (socket) => {
-  console.log('a user connected');
+  console.log('web socket connection');
 });

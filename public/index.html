@@ -12,6 +12,8 @@
   </head>
   <body>
     <div id="app">
+      <p v-if="channel" class="channel-name">{{ channel.name }}</p>
+
       <component
         v-bind:is="modalDialog.component"
         v-bind:dialog-attributes="modalDialog.attributes"

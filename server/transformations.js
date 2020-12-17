@@ -21,6 +21,11 @@ exports.instanciateTransformation = function(temporaryTransformation) {
   };
 };
 
+exports.applyTransformation = function(t, pattern) {
+  const transformation = exports.transformationByName(t.name);
+  return transformation.f.call(t, pattern);
+}
+
 function readTransformations () {
   const files = fs.readdirSync(`${__dirname}/../transformations`);
 
