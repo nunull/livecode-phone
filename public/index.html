@@ -24,6 +24,10 @@
         v-bind:list="transformations"
         group="transformations"
         ghost-class="ghost"
+        drag-class="dragging"
+        chosen-class="chosen"
+        delay="200"
+        delay-on-touch-only="true"
       >
         <transformation-view
           v-for="transformation in transformations"

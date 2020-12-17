@@ -27,6 +27,9 @@ Vue.component('add-transformation-dialog', {
         v-bind:clone="cloneTransformation"
         v-bind:sort="false"
         v-on:end="onEnd"
+        ghost-class="ghost"
+        drag-class="dragging"
+        chosen-class="chosen"
       >
         <transformation-view
           v-for="transformation in $root.availableTransformations"
@@ -46,7 +49,13 @@ Vue.component('change-value-dialog', {
       v-on:mousemove="$refs.dial.onMouseMove($event)"
       v-on:mouseup="$refs.dial.onMouseUp($event)"
     >
-      <dial v-model="dialogAttributes.transformation.value" ref="dial"></dial>
+      <dial
+        v-model="dialogAttributes.transformation.value"
+        v-bind:valueType="dialogAttributes.transformation.valueType"
+        v-bind:min="dialogAttributes.transformation.min"
+        v-bind:max="dialogAttributes.transformation.max"
+        ref="dial"
+      ></dial>
       <standard-button text="OK" v-on:click="$root.closeModalDialog"></standard-button>
     </div>
   `
@@ -125,7 +134,7 @@ Vue.component('round-button', {
 });
 
 Vue.component('dial', {
-  props: ['value'],
+  props: ['value', 'valueType', 'min', 'max'],
   data: function () {
     return {
       internalValue: this._props.value,
@@ -136,14 +145,20 @@ Vue.component('dial', {
   },
   computed: {
     valueRounded: function() {
-      return Math.round(this.internalValue*10)/10;
+      const f = this._props.valueType === 'float' ? 10 : 1;
+      return Math.round(this.internalValue*f)/f;
     },
     dFull: function() {
       return this.describeArc(100, 100, 85, -150, 150)
     },
     dValue: function() {
-      const normalizedValue = this.internalValue / 10; // TODO
-      const deg = normalizedValue*150;
+      const numberSteps = this._props.max - this._props.min;
+      // Scale the value so it starts at zero
+      const zeroBasedValue = this.internalValue - this._props.min;
+      // Scale the value so it ranges from 0 to 1
+      const normalizedValue = zeroBasedValue / numberSteps;
+
+      const deg = normalizedValue*300 - 150;
       return this.describeArc(100, 100, 85, -150, deg)
     }
   },
@@ -168,6 +183,9 @@ Vue.component('dial', {
           'A', radius, radius, 0, largeArcFlag, 0, end.x, end.y
       ].join(' ');
     },
+
+    // Delegate all mouse events to the touch handlers, so the overall logic
+    // does not have to be implemented twice
     onMouseDown: function(event) {
       this.onTouchStart(event);
     },
@@ -179,8 +197,9 @@ Vue.component('dial', {
       if (!this.drag.start) return;
       this.onTouchMove(event);
     },
+
+    // Touch handlers
     onTouchStart: function(event) {
-      // this.internalValue = this._props.value;
       this.drag.start = { x: event.pageX, y: event.pageY, value: this.internalValue };
     },
     onTouchEnd: function(event) {
@@ -191,11 +210,22 @@ Vue.component('dial', {
     onTouchMove: function(event) {
       event.preventDefault();
 
+      // abs*f * x = 300 * x
+      // abs*f = 300
+      // 300/abs = f
+      //
+      //
+      // 300
+      // 24
+
+      // Factor by which pixel values are scaled down
+      // const numberSteps = this._props.max - this._props.min;
+      // const scalingFactor = (100-numberSteps);
+
       const abs = this.drag.start.y - event.pageY;
-      const scaled = abs/30;
-      const minValue = -10; // TODO
-      const maxValue = 10; // TODO
-      this.internalValue = Math.max(minValue, Math.min(maxValue, this.drag.start.value + scaled));
+      const scalingFactor = 300/Math.abs(abs);
+      const scaled = abs/scalingFactor;
+      this.internalValue = Math.max(this._props.min, Math.min(this._props.max, this.drag.start.value + scaled));
     }
   },
   template: `
@@ -224,13 +254,40 @@ const app = new Vue({
     },
     pattern: { steps: [5, 0, 3, 2], scaleSteps: 6 },
     availableTransformations: [
-      { id: uuidv4(), name: 'pitch', description: 'change the pitch' },
-      { id: uuidv4(), name: 'every', description: 'apply another transformation every x times', needsSubTransformation: true },
-      { id: uuidv4(), name: 'chance', description: 'trigger steps of the pattern with a chance' }
+      {
+        id: uuidv4(),
+        name: 'pitch', description: 'change the pitch',
+        valueType: 'float', min: -24, max: 24
+      },
+      {
+        id: uuidv4(),
+        name: 'every', description: 'apply another transformation every x times',
+        valueType: 'int', min: 1, max: 16,
+        needsSubTransformation: true
+      },
+      {
+        id: uuidv4(),
+        name: 'chance', description: 'trigger steps of the pattern with a chance',
+        valueType: 'float', min: 0, max: 1
+      }
     ],
     transformations: [
-      { id: uuidv4(), isInstance: true, name: 'pitch', value: 2 },
-      { id: uuidv4(), isInstance: true, name: 'every', value: 2, needsSubTransformation: true, transformation: { id: uuidv4(), name: 'chance', value: 0.5 } }
+      {
+        id: uuidv4(), isInstance: true,
+        name: 'pitch',
+        value: 2, valueType: 'float', min: -24, max: 24
+      },
+      {
+        id: uuidv4(), isInstance: true,
+        name: 'every',
+        value: 2, valueType: 'int', min: 1, max: 16,
+        needsSubTransformation: true,
+        transformation: {
+          id: uuidv4(), isInstance: true,
+          name: 'chance',
+          value: 0.5, valueType: 'float', min: 0, max: 1
+        }
+      }
     ]
   },
   methods: {
