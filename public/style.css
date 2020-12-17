@@ -47,7 +47,7 @@ html, body {
 /* channel-name */
 
 .channel-name {
-  position: fixed;
+  position: absolute;
   text-align: center;
   display: block;
   width: 44px;
@@ -120,6 +120,7 @@ html, body {
   border-radius: 3px;
   font-size: 28px;
   color: #484848;
+  cursor: pointer;
 }
 
 /* standard-button */

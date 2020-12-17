@@ -38,6 +38,28 @@ Vue.component('add-transformation-dialog', {
   `
 });
 
+Vue.component('choose-transformation-dialog', {
+  props: ['dialogAttributes'],
+  methods: {
+    onClick: function(transformation) {
+      this.$root.closeModalDialog();
+      const id = this._props.dialogAttributes.parentTransformation.id;
+      this.$store.dispatch('updateTransformation', { id, transformation })
+    }
+  },
+  template: `
+    <div class="choose-transformation-dialog">
+      <transformation-view
+        v-for="transformation in $root.availableTransformations"
+        v-bind:key="transformation.id"
+        v-bind:transformation="transformation"
+        v-on:click="onClick"
+      ></transformation-view>
+      <standard-button text="Cancel" v-on:click="$root.closeModalDialog"></standard-button>
+    </div>
+  `
+})
+
 Vue.component('change-value-dialog', {
   props: ['dialogAttributes'],
   computed: {
@@ -47,7 +69,7 @@ Vue.component('change-value-dialog', {
       },
       set(value) {
         const id = this._props.dialogAttributes.transformation.id;
-        this.$store.dispatch('updateValue', { id, value })
+        this.$store.dispatch('updateTransformation', { id, value })
       }
     }
   },
@@ -97,7 +119,11 @@ Vue.component('pattern-view', {
 Vue.component('transformation-view', {
   props: ['transformation', 'isSubTransformation'],
   template: `
-    <div class="transformation" v-bind:class="{ 'is-instance': transformation.isInstance }">
+    <div
+      class="transformation"
+      v-bind:class="{ 'is-instance': transformation.isInstance }"
+      v-on:click="$emit('click', transformation)"
+    >
       <img src="/assets/arrow-down.png" class="arrow" v-if="!isSubTransformation">
       <div class="value" v-bind:class="{ 'has-sub-transformation': !!transformation.transformation }">
         <i v-if="transformation.isTemporary">loading...</i>
@@ -113,7 +139,10 @@ Vue.component('transformation-view', {
             v-bind:isSubTransformation="true"
             v-on:change-value="$emit('change-value', $event)"
           ></transformation-view>
-          <transformation-placeholder-view v-else></transformation-placeholder-view>
+          <transformation-placeholder-view
+            v-bind:parent-transformation="transformation"
+            v-else
+          ></transformation-placeholder-view>
         </div>
       </div>
     </div>
@@ -121,8 +150,19 @@ Vue.component('transformation-view', {
 });
 
 Vue.component('transformation-placeholder-view', {
+  props: ['parentTransformation'],
+  methods: {
+    onClick: function() {
+      this.$root.showModalDialog('choose-transformation-dialog', {
+        parentTransformation: this.parentTransformation
+      });
+    }
+  },
   template: `
-    <div class="transformation-placeholder">transformation</div>
+    <div
+      class="transformation-placeholder"
+      v-on:click="onClick"
+    >add transformation</div>
   `
 })
 
@@ -273,10 +313,6 @@ const store = new Vuex.Store({
     transformations(state, transformations) {
       state.transformations = transformations;
     },
-    value(state, { id, value }) {
-      const transformation = state.transformations.find(t => t.id === id);
-      transformation.value = value;
-    },
     pattern(state, pattern) {
       state.pattern = pattern;
     }
@@ -303,15 +339,15 @@ const store = new Vuex.Store({
       });
     },
 
-    updateValue(context, { id, value }) {
+    updateTransformation(context, { id, value, transformation }) {
       fetch(`/api/transformations/${id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ value })
-      }).then(res => res.json()).then(() => {
-        context.commit('value', { id, value })
+        body: JSON.stringify({ value, transformation })
+      }).then(res => res.json()).then(transformations => {
+        context.commit('transformations', transformations)
       });
     }
   }

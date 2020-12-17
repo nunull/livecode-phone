@@ -8,7 +8,7 @@ exports.f = function(pattern) {
   return {
     ...pattern,
     steps: pattern.steps.map(value => {
-      return Math.random() > this.value ? value : null;
+      return Math.random() > 1-this.value ? value : null;
     })
   };
 };

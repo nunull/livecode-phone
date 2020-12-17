@@ -14,7 +14,7 @@ workerThreads.parentPort.on('message', s => {
   state = s;
 })
 
-function onTick (tick) {
+function onTick(tick) {
   if (!state) return;
 
   for (const id in state.channels) {
@@ -27,20 +27,24 @@ function onTick (tick) {
     }
 
     // TODO apply scale
-    const value = pattern.steps[tick % pattern.steps.length] + pattern.octave * 12;
+    const value = pattern.steps[tick % pattern.steps.length]
+    if (value === null) {
+      continue;
+    }
 
     // TODO cc
     // TODO velocity
     // TODO duration
+    const note_ = value + pattern.octave * 12;
     const velocity = 127;
     const duration = 50;
-    note(value, velocity, channel.channel, duration);
+    note(note_, velocity, channel.channel, duration);
   }
 
   // note(64+oct, 50)
 }
 
-function note (note, velocity, channel, duration) {
+function note(note, velocity, channel, duration) {
   console.log('sequencer.note', note, velocity, channel, duration);
 
   const message = {
@@ -65,14 +69,12 @@ function note (note, velocity, channel, duration) {
 //   });
 // }
 
-
-
 setImmediate(tick);
 
 let currentTick = 0;
 let prevTime = process.hrtime.bigint();
 
-function tick () {
+function tick() {
   const curTime = process.hrtime.bigint();
   if (curTime - prevTime >= tickSize) {
     onTick(currentTick++);
