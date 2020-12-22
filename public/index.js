@@ -1,5 +1,3 @@
-const socket = io();
-
 Vue.component('add-transformation-dialog', {
   methods: {
     cloneTransformation: function(transformation) {
