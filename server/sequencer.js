@@ -7,7 +7,12 @@ const bpm = 100;
 const bps = bpm/60;
 const tickSize = 1e9/bps;
 
-const output = new easymidi.Output(__filename, true);
+var outputs = easymidi.getOutputs();
+console.log(outputs);
+const midiOutputDevice = process.env.MIDI_OUTPUT_DEVICE;
+
+const output = new easymidi.Output(midiOutputDevice || __filename, !midiOutputDevice);
+//const output = new easymidi.Output(__filename, true);
 
 let state = null;
 workerThreads.parentPort.on('message', s => {
